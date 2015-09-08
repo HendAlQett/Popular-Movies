@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+<RelativeLayout
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:id="@+id/tvMovieTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:background="@color/green"
+        android:paddingBottom="32dp"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
+        android:paddingTop="32dp"
+        android:textColor="@android:color/white"
+        android:textSize="50sp" />
+
+    <ImageView
+        android:id="@+id/ivMovie"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/tvMovieTitle"
+        android:layout_marginLeft="16dp"
+        android:layout_marginRight="16dp"
+        android:adjustViewBounds="true"
+        android:scaleType="fitXY" />
+
+    <TextView
+        android:id="@+id/tvMovieDescription"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/ivMovie"
+        android:layout_margin="16dp"
+        android:text="@string/notAvailable"/>
+
+    <TextView
+        android:id="@+id/tvReleaseDate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/tvMovieTitle"
+        android:layout_toRightOf="@id/ivMovie"
+        android:textAppearance="?android:textAppearanceLarge"
+        android:textColor="@android:color/darker_gray"
+        android:text="@string/notAvailable"/>
+
+    <TextView
+        android:id="@+id/tvRating"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/tvReleaseDate"
+        android:layout_toRightOf="@id/ivMovie"
+        android:text="@string/notAvailable"/>
+
+
+</RelativeLayout>
+</ScrollView>

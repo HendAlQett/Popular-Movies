@@ -1,0 +1,27 @@
+<resources>
+    <string name="app_name">Popular Movies</string>
+
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="pref_key_sort">sort</string>
+    <string name="pref_sort_label_popularity">Most popular</string>
+    <string name="pref_sort_label_vote_rate">Highest-rated</string>
+    <string name="pref_sort_popularity">popularity.desc</string>
+    <string name="pref_sort_vote_rate">vote_average.desc</string>
+    <string name="pref_sort_default">@string/pref_sort_popularity</string>
+    <string name="title_activity_detail">Details</string>
+    <string name="poster_small_base_url">http://image.tmdb.org/t/p/w185</string>
+    <string name="poster_medium_base_url">http://image.tmdb.org/t/p/w342</string>
+    <string name="notAvailable">Not available</string>
+
+
+
+    <string-array name="listSortArray">
+        <item>@string/pref_sort_label_popularity</item>
+        <item>@string/pref_sort_label_vote_rate</item>
+    </string-array>
+    <string-array name="listSortValues">
+        <item>@string/pref_sort_popularity</item>
+        <item>@string/pref_sort_vote_rate</item>
+    </string-array>
+</resources>
