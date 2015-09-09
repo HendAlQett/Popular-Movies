@@ -43,10 +43,11 @@ public class MoviesFragment extends Fragment {
     View rootView;
     final String LOG_TAG = MoviesFragment.class.getSimpleName();
     final String KEY_MOVIES_LIST = "movies_list";
-    static final String KEY_MOVIE_ITEM="movie_item";
+    static final String KEY_MOVIE_ITEM = "movie_item";
     GridView gridview;
     ImageAdapter adapter;
     ArrayList<Movie> moviesList;
+    boolean flagInstanceNull = true;
 
 
     @Override
@@ -61,9 +62,11 @@ public class MoviesFragment extends Fragment {
         gridview = (GridView) rootView.findViewById(R.id.gridViewMovies);
         if (savedInstanceState == null || !savedInstanceState.containsKey(KEY_MOVIES_LIST)) {
             moviesList = new ArrayList<>();
+
         } else {
             moviesList = savedInstanceState.getParcelableArrayList(KEY_MOVIES_LIST);
 
+            flagInstanceNull = false;
         }
 
 
@@ -89,10 +92,13 @@ public class MoviesFragment extends Fragment {
     public void onStart() {
         super.onStart();
         if (isNetworkAvailable()) {
-            updateMovies();
+            if (flagInstanceNull) {
+                updateMovies();
+
+            }
         } else {
 
-            Toast.makeText(getActivity(),"Please check your internet connection!",Toast.LENGTH_LONG).show();
+            Toast.makeText(getActivity(), "Please check your internet connection!", Toast.LENGTH_LONG).show();
         }
     }
 
@@ -162,7 +168,7 @@ public class MoviesFragment extends Fragment {
                         .build();
 
                 URL url = new URL(builder.toString());
-                Log.d(LOG_TAG, builder.toString());
+//                Log.d(LOG_TAG, builder.toString());
                 urlConnection = (HttpURLConnection) url.openConnection();
                 urlConnection.setRequestMethod("GET");
                 urlConnection.connect();
@@ -182,7 +188,7 @@ public class MoviesFragment extends Fragment {
                     return null;
                 }
                 moviesJsonStr = buffer.toString();
-                Log.d(LOG_TAG, moviesJsonStr);
+//                Log.d(LOG_TAG, moviesJsonStr);
                 movies = getMoviesData(moviesJsonStr);
 
             } catch (MalformedURLException e) {
@@ -211,7 +217,7 @@ public class MoviesFragment extends Fragment {
         protected void onPostExecute(ArrayList<Movie> movies) {
             super.onPostExecute(movies);
 
-            Log.d(LOG_TAG, Integer.toString(movies.size()));
+//            Log.d(LOG_TAG, Integer.toString(movies.size()));
             //Update adapter
 
 
