@@ -77,6 +77,7 @@ public class DetailsFragment extends Fragment {
     final String LOG_TAG = DetailsFragment.class.getSimpleName();
     ShareActionProvider mShareActionProvider;
      ArrayList<Trailer> mTrailers;
+    ArrayList<Review> mReviews;
 
 
 
@@ -106,6 +107,8 @@ public class DetailsFragment extends Fragment {
     static final int COL_POSTER_PATH = 5;
     static final int COL_VOTE_AVERAGE = 6;
 
+    String REVIEWS_KEY="reviews_key", TRAILERS_KEY="trailers_key",MOVIE_KEY= "movie_key";
+
 
     public DetailsFragment() {
         //Important
@@ -118,43 +121,44 @@ public class DetailsFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_details, container, false);
         ButterKnife.bind(this, view);
 
-        Bundle arguments = getArguments();
-        if (arguments != null) {
-            movie = arguments.getParcelable(DetailsFragment.DETAIL_MOVIE);
-            if (movie != null) {
-                Cursor cursor = getContext().getContentResolver().query(MovieContract.MovieEntry.CONTENT_URI, MOVIE_COLUMNS, MovieContract.MovieEntry.COLUMN_MOVIE_ID + " = ?", new String[]{Integer.toString(movie.getMovieId())}, null);
-                if (cursor.getCount() > 0) {
-                    cbMovieFavorite.setChecked(true);
-                }
-                cbMovieFavorite.setVisibility(View.VISIBLE);
-            }
-        }
-
-
-        cbMovieFavorite.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
-
-                    ContentValues movieValues = new ContentValues();
-
-                    movieValues.put(MovieContract.MovieEntry.COLUMN_MOVIE_ID, movie.getMovieId());
-                    movieValues.put(MovieContract.MovieEntry.COLUMN_TITLE, movie.getOriginalTitle());
-                    movieValues.put(MovieContract.MovieEntry.COLUMN_OVERVIEW, movie.getOverview());
-                    movieValues.put(MovieContract.MovieEntry.COLUMN_RELEASE_DATE, movie.getReleaseDate());
-                    movieValues.put(MovieContract.MovieEntry.COLUMN_POSTER_PATH, movie.getPosterPath());
-
-                    movieValues.put(MovieContract.MovieEntry.COLUMN_VOTE_AVERAGE, movie.getVoteAverage());
-
-                    Uri uri = getContext().getContentResolver().insert(MovieContract.MovieEntry.CONTENT_URI, movieValues);
-                    Log.d(LOG_TAG, "" + uri);
-                } else {
-                    int count = getContext().getContentResolver().delete(MovieContract.MovieEntry.CONTENT_URI, MovieContract.MovieEntry.COLUMN_MOVIE_ID + " = ?", new String[]{Integer.toString(movie.getMovieId())});
-
-                    Log.d(LOG_TAG, "number of rows deleted " + count);
+        if (savedInstanceState==null) {
+            Bundle arguments = getArguments();
+            if (arguments != null) {
+                movie = arguments.getParcelable(DetailsFragment.DETAIL_MOVIE);
+                if (movie != null) {
+                    Cursor cursor = getContext().getContentResolver().query(MovieContract.MovieEntry.CONTENT_URI, MOVIE_COLUMNS, MovieContract.MovieEntry.COLUMN_MOVIE_ID + " = ?", new String[]{Integer.toString(movie.getMovieId())}, null);
+                    if (cursor.getCount() > 0) {
+                        cbMovieFavorite.setChecked(true);
+                    }
+                    cbMovieFavorite.setVisibility(View.VISIBLE);
                 }
             }
-        });
+
+
+            cbMovieFavorite.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                    if (isChecked) {
+
+                        ContentValues movieValues = new ContentValues();
+
+                        movieValues.put(MovieContract.MovieEntry.COLUMN_MOVIE_ID, movie.getMovieId());
+                        movieValues.put(MovieContract.MovieEntry.COLUMN_TITLE, movie.getOriginalTitle());
+                        movieValues.put(MovieContract.MovieEntry.COLUMN_OVERVIEW, movie.getOverview());
+                        movieValues.put(MovieContract.MovieEntry.COLUMN_RELEASE_DATE, movie.getReleaseDate());
+                        movieValues.put(MovieContract.MovieEntry.COLUMN_POSTER_PATH, movie.getPosterPath());
+
+                        movieValues.put(MovieContract.MovieEntry.COLUMN_VOTE_AVERAGE, movie.getVoteAverage());
+
+                        Uri uri = getContext().getContentResolver().insert(MovieContract.MovieEntry.CONTENT_URI, movieValues);
+                        Log.d(LOG_TAG, "" + uri);
+                    } else {
+                        int count = getContext().getContentResolver().delete(MovieContract.MovieEntry.CONTENT_URI, MovieContract.MovieEntry.COLUMN_MOVIE_ID + " = ?", new String[]{Integer.toString(movie.getMovieId())});
+
+                        Log.d(LOG_TAG, "number of rows deleted " + count);
+                    }
+                }
+            });
 
 
 //        if (savedInstanceState == null || !savedInstanceState.containsKey(MoviesFragment.KEY_MOVIE_ITEM)) {
@@ -163,35 +167,50 @@ public class DetailsFragment extends Fragment {
 //            movie = savedInstanceState.getParcelable(MoviesFragment.KEY_MOVIE_ITEM);
 //
 //        }
-        if (movie != null) {
-            tvMovieTitle.setText(movie.getOriginalTitle());
-            if (!TextUtils.isEmpty(movie.getOverview()) && !TextUtils.equals(movie.getOverview(), "null")) {
-                tvMovieDescription.setText(movie.getOverview());
-            } else {
-                tvMovieDescription.setText(getString(R.string.notAvailable));
+            if (movie != null) {
+                tvMovieTitle.setText(movie.getOriginalTitle());
+                if (!TextUtils.isEmpty(movie.getOverview()) && !TextUtils.equals(movie.getOverview(), "null")) {
+                    tvMovieDescription.setText(movie.getOverview());
+                } else {
+                    tvMovieDescription.setText(getString(R.string.notAvailable));
+                }
+                if (!TextUtils.isEmpty(movie.getReleaseDate()) && !TextUtils.equals(movie.getReleaseDate(), "null")) {
+                    tvReleaseDate.setText(movie.getReleaseDate());
+                } else {
+                    tvMovieDescription.setText(getString(R.string.notAvailable));
+                }
+
+                tvRating.setText(Double.toString(movie.getVoteAverage()) + "/10.0");
+
+                Picasso.with(getActivity()).load(getString(R.string.poster_medium_base_url) + movie.getPosterPath()).placeholder(R.mipmap.thumbnail).into(ivMovie);
+
+                if (Utils.isNetworkAvailable(getActivity())) {
+
+                    updateTrailers(movie);
+                    updateReviews(movie);
+                }
+
             }
-            if (!TextUtils.isEmpty(movie.getReleaseDate()) && !TextUtils.equals(movie.getReleaseDate(), "null")) {
-                tvReleaseDate.setText(movie.getReleaseDate());
-            } else {
-                tvMovieDescription.setText(getString(R.string.notAvailable));
-            }
-
-            tvRating.setText(Double.toString(movie.getVoteAverage()) + "/10.0");
-
-            Picasso.with(getActivity()).load(getString(R.string.poster_medium_base_url) + movie.getPosterPath()).placeholder(R.mipmap.thumbnail).into(ivMovie);
-
-            if(Utils.isNetworkAvailable(getActivity())) {
-
-                updateTrailers(movie);
-                updateReviews(movie);
-            }
-
+        }
+        else
+        {
+            movie = savedInstanceState.getParcelable(MOVIE_KEY);
+            mReviews = savedInstanceState.getParcelableArrayList(REVIEWS_KEY);
+            mTrailers = savedInstanceState.getParcelable(TRAILERS_KEY);
         }
 
 
         return view;
     }
 
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        outState.putParcelableArrayList(REVIEWS_KEY, mReviews);
+        outState.putParcelableArrayList(TRAILERS_KEY, mTrailers);
+        outState.putParcelable(MOVIE_KEY,movie);
+        super.onSaveInstanceState(outState);
+    }
 
     void updateTrailers(Movie movie) {
 
@@ -233,10 +252,10 @@ public class DetailsFragment extends Fragment {
         RestClient.get().requestReviews(movie.getMovieId(), BuildConfig.MOVIE_API_KEY, new Callback<ReviewResult>() {
             @Override
             public void success(ReviewResult reviewResult, Response response) {
-                final ArrayList<Review> reviews = reviewResult.getReviews();
+                 mReviews = reviewResult.getReviews();
 
-                if (reviews.size() > 0) {
-                    ReviewAdapter reviewAdapter = new ReviewAdapter(getActivity(), reviews);
+                if (mReviews.size() > 0) {
+                    ReviewAdapter reviewAdapter = new ReviewAdapter(getActivity(), mReviews);
 
                     lvReview.setAdapter(reviewAdapter);
 
