@@ -24,6 +24,7 @@ public class MainActivity extends AppCompatActivity  implements MoviesFragment.C
         mSort= Utils.getCurrentSortPereference(this);
 
 
+
         if (findViewById(R.id.movies_detail_container) != null) {
             // The detail container view will be present only in the large-screen layouts
             // (res/layout-sw600dp). If this view is present, then the activity should be

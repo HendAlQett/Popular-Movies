@@ -18,7 +18,7 @@ import android.widget.AdapterView;
 import android.widget.GridView;
 import android.widget.LinearLayout;
 import android.widget.ListAdapter;
-import android.widget.Toast;
+import android.widget.ListView;
 
 import com.hendalqett.popularmovies.adapters.ImageAdapter;
 import com.hendalqett.popularmovies.data.MovieContract;
@@ -53,12 +53,14 @@ public class MoviesFragment extends Fragment implements LoaderManager.LoaderCall
     View rootView;
     final String LOG_TAG = MoviesFragment.class.getSimpleName();
     final String KEY_MOVIES_LIST = "movies_list";
+    static final String KEY_SELECTED_ITEM_POSITION = "movie_item_position";
     static final String KEY_MOVIE_ITEM = "movie_item";
     GridView gridview;
     ImageAdapter adapter;
     ArrayList<Movie> moviesList;
     boolean flagInstanceNull = true;
     final static int MOVIE_LOADER = 0;
+    private int mPosition = ListView.INVALID_POSITION;
 
 
     private static final String[] MOVIE_COLUMNS = {
@@ -105,22 +107,20 @@ public class MoviesFragment extends Fragment implements LoaderManager.LoaderCall
 
 
         ArrayList<Movie> movies = new ArrayList<>();
-        if (cursor != null && cursor.getCount()!=0) {
+        if (cursor != null && cursor.getCount() != 0) {
+
             for (cursor.moveToFirst(); !cursor.isAfterLast(); cursor.moveToNext()) {
                 // The Cursor is now set to the right position
                 movies.add(new Movie(cursor.getInt(1), cursor.getString(2), cursor.getString(3), cursor.getString(4), cursor.getString(5), cursor.getDouble(6)));
             }
-//        if (mPosition != ListView.INVALID_POSITION) {
-//            // If we don't need to restart the loader, and there's a desired position to restore
-//            // to, do so now.
-//            mListView.smoothScrollToPosition(mPosition);
-//        }
+
             adapter.updateMovies(movies);
             gridview.setAdapter(adapter);
 
+
         } else {
-//           gridview.setAdapter(null);
-            Toast.makeText(getActivity(), "No favorites", Toast.LENGTH_SHORT).show();
+            Snackbar.make(rootView, "No favorites saved", Snackbar.LENGTH_LONG).show();
+
         }
 
         getLoaderManager().destroyLoader(MOVIE_LOADER);
@@ -134,13 +134,12 @@ public class MoviesFragment extends Fragment implements LoaderManager.LoaderCall
     }
 
 
-
     public interface Callback {
         /**
          * DetailFragmentCallback for when an item has been selected.
          */
         //TODO: will be a URI instead
-        public void onItemSelected(Movie movie);
+         void onItemSelected(Movie movie);
 
     }
 
@@ -157,33 +156,36 @@ public class MoviesFragment extends Fragment implements LoaderManager.LoaderCall
         gridview = (GridView) rootView.findViewById(R.id.gridViewMovies);
         if (savedInstanceState == null || !savedInstanceState.containsKey(KEY_MOVIES_LIST)) {
             moviesList = new ArrayList<>();
+            updateMovies();
 
         } else {
             moviesList = savedInstanceState.getParcelableArrayList(KEY_MOVIES_LIST);
-
             flagInstanceNull = false;
+
         }
 
 
         adapter = new ImageAdapter(getActivity(), moviesList);
         gridview.setAdapter(adapter);
 
+
         gridview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
 
                 if (Utils.isNetworkAvailable(getActivity()))
-
                 {
                     Movie movie = (Movie) adapterView.getItemAtPosition(position);
 
                     ((Callback) getActivity()).onItemSelected(movie);
+                    mPosition= position;
                 } else {
                     String sort = Utils.getCurrentSortPereference(getActivity());
                     if (sort.equals(getString(R.string.pref_sort_favorites))) {
                         Movie movie = (Movie) adapterView.getItemAtPosition(position);
 
                         ((Callback) getActivity()).onItemSelected(movie);
+                        mPosition= position;
 
                     } else {
                         showNetworkNotAvailable();
@@ -194,7 +196,17 @@ public class MoviesFragment extends Fragment implements LoaderManager.LoaderCall
             }
         });
 
-        updateMovies();
+        if (!flagInstanceNull) //Or instance not null
+        {
+            mPosition= savedInstanceState.getInt(KEY_SELECTED_ITEM_POSITION);
+
+            ListAdapter listAdapter = gridview.getAdapter();
+            if (MainActivity.mTwoPane) {
+                gridview.performItemClick(gridview.getChildAt(mPosition), mPosition, listAdapter.getItemId(mPosition));
+                gridview.smoothScrollToPosition(mPosition);
+            }
+        }
+
         ButterKnife.bind(this, rootView);
         return rootView;
     }
@@ -223,11 +235,13 @@ public class MoviesFragment extends Fragment implements LoaderManager.LoaderCall
 //    }
 
 
-
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putParcelableArrayList(KEY_MOVIES_LIST, moviesList);
+        if (mPosition != ListView.INVALID_POSITION) {
+            outState.putInt(KEY_SELECTED_ITEM_POSITION, mPosition);
+        }
     }
 
     @Override
@@ -237,7 +251,7 @@ public class MoviesFragment extends Fragment implements LoaderManager.LoaderCall
     }
 
     private void updateMovies() {
-        String sort= Utils.getCurrentSortPereference(getActivity());
+        String sort = Utils.getCurrentSortPereference(getActivity());
         if (sort.equals(getString(R.string.pref_sort_favorites))) {
             getLoaderManager().initLoader(MOVIE_LOADER, null, this);
         } else {
@@ -259,20 +273,18 @@ public class MoviesFragment extends Fragment implements LoaderManager.LoaderCall
                             gridview.setAdapter(adapter);
 //
                             ListAdapter listAdapter = gridview.getAdapter();
-                            if(MainActivity.mTwoPane) {
+                            if (MainActivity.mTwoPane) {
                                 gridview.performItemClick(gridview.getChildAt(0), 0, listAdapter.getItemId(0));
                             }
 
                         }
 
 
-
-
                     }
 
                     @Override
                     public void failure(RetrofitError error) {
-                        Toast.makeText(getActivity(), "Fail", Toast.LENGTH_SHORT).show();
+//                        Toast.makeText(getActivity(), "Fail", Toast.LENGTH_SHORT).show();
                         Log.d(LOG_TAG, "Fail");
 
                     }
@@ -426,20 +438,22 @@ public class MoviesFragment extends Fragment implements LoaderManager.LoaderCall
 //    }
 
 
-    void showNetworkNotAvailable()
-    {
-        Snackbar
-                .make(llFragmentMovies, R.string.snackbar_text, Snackbar.LENGTH_LONG)
-                .setAction(R.string.snackbar_action, new View.OnClickListener()
-                {
+    void showNetworkNotAvailable() {
+       final Snackbar snackbar= Snackbar
+                .make(llFragmentMovies, R.string.snackbar_text, Snackbar.LENGTH_INDEFINITE);
 
-                    @Override
-                    public void onClick(View v) {
-                        updateMovies();
 
-                    }
-                })
-                .show();
+        snackbar.setAction(R.string.snackbar_action, new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                updateMovies();
+                snackbar.dismiss();
+
+            }
+        }).show();
+
+
     }
 
 }
