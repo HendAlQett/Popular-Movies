@@ -1,26 +1,30 @@
 package com.hendalqett.popularmovies;
 
 import android.app.Fragment;
-import android.content.Context;
-import android.content.Intent;
-import android.content.SharedPreferences;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
+import android.app.LoaderManager;
+import android.content.CursorLoader;
+import android.content.Loader;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
+import android.support.design.widget.Snackbar;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.GridView;
+import android.widget.LinearLayout;
+import android.widget.ListAdapter;
 import android.widget.Toast;
 
 import com.hendalqett.popularmovies.adapters.ImageAdapter;
+import com.hendalqett.popularmovies.data.MovieContract;
 import com.hendalqett.popularmovies.models.Movie;
+import com.hendalqett.popularmovies.models.MovieResult;
+import com.hendalqett.popularmovies.retrofit.RestClient;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -35,10 +39,16 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 
+import butterknife.Bind;
+import butterknife.ButterKnife;
+import retrofit.RetrofitError;
+import retrofit.client.Response;
+
+
 /**
  * Created by Hend on 9/1/2015.
  */
-public class MoviesFragment extends Fragment {
+public class MoviesFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
 
     View rootView;
     final String LOG_TAG = MoviesFragment.class.getSimpleName();
@@ -48,6 +58,91 @@ public class MoviesFragment extends Fragment {
     ImageAdapter adapter;
     ArrayList<Movie> moviesList;
     boolean flagInstanceNull = true;
+    final static int MOVIE_LOADER = 0;
+
+
+    private static final String[] MOVIE_COLUMNS = {
+            // In this case the id needs to be fully qualified with a table name, since
+            // the content provider joins the location & weather tables in the background
+            // (both have an _id column)
+            // On the one hand, that's annoying.  On the other, you can search the weather table
+            // using the location set by the user, which is only in the Location table.
+            // So the convenience is worth it.
+            MovieContract.MovieEntry.TABLE_NAME + "." + MovieContract.MovieEntry._ID,
+            MovieContract.MovieEntry.COLUMN_MOVIE_ID,
+            MovieContract.MovieEntry.COLUMN_TITLE,
+            MovieContract.MovieEntry.COLUMN_OVERVIEW,
+            MovieContract.MovieEntry.COLUMN_RELEASE_DATE,
+            MovieContract.MovieEntry.COLUMN_POSTER_PATH,
+            MovieContract.MovieEntry.COLUMN_VOTE_AVERAGE
+    };
+
+    // These indices are tied to FORECAST_COLUMNS.  If FORECAST_COLUMNS changes, these
+    // must change.
+    static final int COL_ID = 0;
+    static final int COL_MOVIE_ID = 1;
+    static final int COL_TITLE = 2;
+    static final int COL_OVERVIEW = 3;
+    static final int COL_RELEASE_DATE = 4;
+    static final int COL_POSTER_PATH = 5;
+    static final int COL_VOTE_AVERAGE = 6;
+    @Bind(R.id.llFragmentMovies)
+    LinearLayout llFragmentMovies;
+
+
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        String sortOrder = MovieContract.MovieEntry._ID + " ASC";
+        Uri movieFromUri = MovieContract.MovieEntry.buildMovieUri();
+
+        Log.d(LOG_TAG, movieFromUri.toString());
+
+        return new CursorLoader(getActivity(), movieFromUri, MOVIE_COLUMNS, null, null, sortOrder);
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor cursor) {
+
+
+        ArrayList<Movie> movies = new ArrayList<>();
+        if (cursor != null && cursor.getCount()!=0) {
+            for (cursor.moveToFirst(); !cursor.isAfterLast(); cursor.moveToNext()) {
+                // The Cursor is now set to the right position
+                movies.add(new Movie(cursor.getInt(1), cursor.getString(2), cursor.getString(3), cursor.getString(4), cursor.getString(5), cursor.getDouble(6)));
+            }
+//        if (mPosition != ListView.INVALID_POSITION) {
+//            // If we don't need to restart the loader, and there's a desired position to restore
+//            // to, do so now.
+//            mListView.smoothScrollToPosition(mPosition);
+//        }
+            adapter.updateMovies(movies);
+            gridview.setAdapter(adapter);
+
+        } else {
+//           gridview.setAdapter(null);
+            Toast.makeText(getActivity(), "No favorites", Toast.LENGTH_SHORT).show();
+        }
+
+        getLoaderManager().destroyLoader(MOVIE_LOADER);
+
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+
+        adapter.emptyList();
+    }
+
+
+
+    public interface Callback {
+        /**
+         * DetailFragmentCallback for when an item has been selected.
+         */
+        //TODO: will be a URI instead
+        public void onItemSelected(Movie movie);
+
+    }
 
 
     @Override
@@ -76,31 +171,58 @@ public class MoviesFragment extends Fragment {
         gridview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
-                Movie movie = (Movie) adapterView.getItemAtPosition(position);
-                Intent intent = new Intent(getActivity(), DetailsActivity.class);
-                intent.putExtra(KEY_MOVIE_ITEM, movie);
-                startActivity(intent);
+
+                if (Utils.isNetworkAvailable(getActivity()))
+
+                {
+                    Movie movie = (Movie) adapterView.getItemAtPosition(position);
+
+                    ((Callback) getActivity()).onItemSelected(movie);
+                } else {
+                    String sort = Utils.getCurrentSortPereference(getActivity());
+                    if (sort.equals(getString(R.string.pref_sort_favorites))) {
+                        Movie movie = (Movie) adapterView.getItemAtPosition(position);
+
+                        ((Callback) getActivity()).onItemSelected(movie);
+
+                    } else {
+                        showNetworkNotAvailable();
+                    }
+                }
+
 
             }
         });
 
-
+        updateMovies();
+        ButterKnife.bind(this, rootView);
         return rootView;
     }
 
     @Override
-    public void onStart() {
-        super.onStart();
-        if (isNetworkAvailable()) {
-            if (flagInstanceNull) {
-                updateMovies();
-
-            }
-        } else {
-
-            Toast.makeText(getActivity(), "Please check your internet connection!", Toast.LENGTH_LONG).show();
-        }
+    public void onActivityCreated(Bundle savedInstanceState) {
+//        getLoaderManager().initLoader(MOVIE_LOADER, null, this);
+        super.onActivityCreated(savedInstanceState);
     }
+
+    void onSortChanged() {
+        updateMovies();
+//        getLoaderManager().restartLoader(MOVIE_LOADER, null, this);
+
+    }
+
+//    @Override
+//    public void onStart() {
+//        super.onStart();
+//
+//        if (flagInstanceNull) {
+//            updateMovies();
+//
+//        }
+//
+//    }
+
+
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
@@ -108,11 +230,61 @@ public class MoviesFragment extends Fragment {
         outState.putParcelableArrayList(KEY_MOVIES_LIST, moviesList);
     }
 
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        ButterKnife.unbind(this);
+    }
+
     private void updateMovies() {
-        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(getActivity());
-        String sort = pref.getString(getString(R.string.pref_key_sort), getString(R.string.pref_sort_default));
-        FetchMoviesData weatherTask = new FetchMoviesData();
-        weatherTask.execute(sort);
+        String sort= Utils.getCurrentSortPereference(getActivity());
+        if (sort.equals(getString(R.string.pref_sort_favorites))) {
+            getLoaderManager().initLoader(MOVIE_LOADER, null, this);
+        } else {
+
+
+            if (Utils.isNetworkAvailable(getActivity())) {
+
+
+                RestClient.get().requestMovies(sort, BuildConfig.MOVIE_API_KEY, new retrofit.Callback<MovieResult>() {
+                    @Override
+                    public void success(MovieResult movieResult, Response response) {
+                        ArrayList<Movie> movies = movieResult.getMovies();
+//                        Toast.makeText(getActivity(), "Movies size " + movies.size(), Toast.LENGTH_SHORT).show();
+                        Log.d(LOG_TAG, "" + movies.size());
+                        if (movies != null) {
+                            moviesList = movies;
+                            adapter.updateMovies(moviesList);
+
+                            gridview.setAdapter(adapter);
+//
+                            ListAdapter listAdapter = gridview.getAdapter();
+                            if(MainActivity.mTwoPane) {
+                                gridview.performItemClick(gridview.getChildAt(0), 0, listAdapter.getItemId(0));
+                            }
+
+                        }
+
+
+
+
+                    }
+
+                    @Override
+                    public void failure(RetrofitError error) {
+                        Toast.makeText(getActivity(), "Fail", Toast.LENGTH_SHORT).show();
+                        Log.d(LOG_TAG, "Fail");
+
+                    }
+                });
+
+            } else {
+                showNetworkNotAvailable();
+
+            }
+        }
+
+
     }
 
 
@@ -158,7 +330,7 @@ public class MoviesFragment extends Fragment {
 
 
             //TODO: Generate API_KEY
-            final String MOVIES_API_KEY = "";
+            final String MOVIES_API_KEY = "1ffb1c24265390a7139e3099ae8b8e4b";
             final String MOVIES_BASE_URL = "http://api.themoviedb.org/3/discover/movie";
             try {
 
@@ -168,7 +340,8 @@ public class MoviesFragment extends Fragment {
                         .build();
 
                 URL url = new URL(builder.toString());
-//                Log.d(LOG_TAG, builder.toString());
+
+                Log.d(LOG_TAG, builder.toString());
                 urlConnection = (HttpURLConnection) url.openConnection();
                 urlConnection.setRequestMethod("GET");
                 urlConnection.connect();
@@ -245,12 +418,28 @@ public class MoviesFragment extends Fragment {
         return voteCount;
     }
 
-    private boolean isNetworkAvailable() {
-        ConnectivityManager connectivityManager
-                = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
-        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
-    }
+//    private boolean isNetworkAvailable(Activity activity) {
+//        ConnectivityManager connectivityManager
+//                = (ConnectivityManager) activity.getSystemService(Context.CONNECTIVITY_SERVICE);
+//        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+//        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
+//    }
 
+
+    void showNetworkNotAvailable()
+    {
+        Snackbar
+                .make(llFragmentMovies, R.string.snackbar_text, Snackbar.LENGTH_LONG)
+                .setAction(R.string.snackbar_action, new View.OnClickListener()
+                {
+
+                    @Override
+                    public void onClick(View v) {
+                        updateMovies();
+
+                    }
+                })
+                .show();
+    }
 
 }

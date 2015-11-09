@@ -1,0 +1,112 @@
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:nestedScrollingEnabled="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+       android:paddingBottom="16dp">
+
+        <TextView
+            android:id="@+id/tvMovieTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/movies_green"
+            android:padding="16dp"
+            android:textColor="@android:color/white"
+            android:textSize="50sp" />
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp">
+
+
+
+            <ImageView
+                android:id="@+id/ivMovie"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+
+
+                android:adjustViewBounds="true"
+                android:scaleType="fitXY" />
+
+            <CheckBox
+
+                android:layout_marginLeft="16dp"
+                android:layout_marginTop="8dp"
+                android:id="@+id/cbMovieFavorite"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="?android:attr/starStyle"
+                android:checked="false"
+
+                android:layout_toRightOf="@id/ivMovie"
+                android:visibility="gone"
+
+                />
+
+
+
+
+            <TextView
+                android:id="@+id/tvMovieDescription"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/ivMovie"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="16dp"/>
+
+            <TextView
+                android:id="@+id/tvReleaseDate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="16dp"
+                android:layout_toRightOf="@id/ivMovie"
+                android:layout_below="@id/cbMovieFavorite"
+                android:textAppearance="?android:textAppearanceLarge"
+                android:textColor="@android:color/darker_gray" />
+
+            <TextView
+                android:id="@+id/tvRating"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/tvReleaseDate"
+                android:layout_marginLeft="16dp"
+                android:layout_toRightOf="@id/ivMovie" />
+
+
+        </RelativeLayout>
+
+
+        <TextView
+            android:textColor="@android:color/black"
+            android:id="@+id/tvTrailers"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+
+            android:textSize="18sp"
+            android:layout_marginLeft="16dp"/>
+        <com.hendalqett.popularmovies.views.NestedListView
+            android:id="@+id/lvTrailer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:divider="@null"/>
+
+        <TextView
+            android:textColor="@android:color/black"
+            android:id="@+id/tvReviews"
+            android:layout_marginLeft="16dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="18sp"/>
+        <com.hendalqett.popularmovies.views.NestedListView
+
+            android:id="@+id/lvReview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+</ScrollView>

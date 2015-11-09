@@ -75,8 +75,15 @@ public class ImageAdapter extends BaseAdapter {
         return view;
     }
 
+    public void emptyList() {
+       movies=null;
+    }
+
+
     private static class ViewHolder {
         ImageView posterImage;
     }
+
+
 
 }
