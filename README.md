@@ -30,4 +30,11 @@ The app allows users to discover the most popular movies playing, and allows the
 ##To run the app
 
 Fill MOVIES_API_KEY in build.gradle with the appropriate API key from [The Movie DB](https://www.themoviedb.org/?_dc=1441732310)
+
+##Screenshots
+
+![Phone Main](https://cloud.githubusercontent.com/assets/4416384/15277726/6aad89f4-1b0c-11e6-963f-5c4055b3acbe.png)
+![Phone Details 1](https://cloud.githubusercontent.com/assets/4416384/15277746/e7132f12-1b0c-11e6-9c5e-a4c158b5b53e.png)
+![Phone Details 2](https://cloud.githubusercontent.com/assets/4416384/15277747/e90bb1a4-1b0c-11e6-9b60-10383abd23bd.png)
+![Tablet](https://cloud.githubusercontent.com/assets/4416384/15277839/d88b7326-1b0e-11e6-8e59-2f268b274c2e.png)
  
